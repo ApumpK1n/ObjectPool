@@ -3,28 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PoolManager
+public class PoolManager : SingletonBehaviour<PoolManager>
 {
-    private static PoolManager instance;
 
-    public static PoolManager Instance
-    {
-        get
-        {
-            if (null == instance)
-            {
-                instance = new PoolManager();
-            }
-
-            return instance;
-        }
-    }
-
-    private Dictionary<string, ObjectPool<MonoBehaviour>> pools;
+    //private Dictionary<string, ObjectPool<MonoBehaviour>> pools;
 
     private PoolManager()
     {
-        pools = new Dictionary<string, ObjectPool<MonoBehaviour>>();
+        //pools = new Dictionary<string, ObjectPool<MonoBehaviour>>();
     }
 
     public void Allocate(string poolName)
@@ -35,7 +21,7 @@ public class PoolManager
     public void Recycle<T>(T item) where T:MonoBehaviour
     {
         string key = item.name;
-        if (!pools.ContainsKey(key))
+        //if (!pools.ContainsKey(key))
         {
             //pools.Add(key, new ObjectPool<T>(item.gameObject));
         }

@@ -20,23 +20,21 @@ public class ObjectPool
     /// <summary>
     /// 池的最大容量
     /// </summary>
-    public int hardLimit = 5;
+    public int hardLimit = 10;
+    /// <summary>
+    /// 切换场景是否保留对象池
+    /// </summary>
+    public bool persistBetweenScenes = false;
+
+    /// <summary>
+    /// 对象池已经创建的对象数量
+    /// </summary>
+    private int instanceCount = 0;
 
 
     private Stack<GameObject> unUsedStack;
-    private int maxSize;
 
-
-
-    /// <summary>
-    /// 预设对象池
-    /// </summary>
-    public void Initialize()
-    {
-        unUsedStack = new Stack<GameObject>(instancesToPreallocate);
-        CreateameObjects(instancesToPreallocate);
-    }
-
+    #region Private
     private void CreateameObjects(int count)
     {
         if (imposeHardLimit && unUsedStack.Count + count > hardLimit)
@@ -46,7 +44,7 @@ public class ObjectPool
            
         for (int n = 0; n < count; n++)
         {
-            GameObject go = GameObject.Instantiate(prefab.gameObject) as GameObject;
+            GameObject go = GameObject.Instantiate(prefab);
             go.name = prefab.name;
 
             go.SetActive(false);
@@ -54,89 +52,64 @@ public class ObjectPool
         }
     }
 
-    public GameObject Pop()
+    private GameObject Pop()
     {
+        if (imposeHardLimit && instanceCount >= hardLimit)
+            return null;
+
         if (unUsedStack.Count > 0)
         {
+            instanceCount++;
             return unUsedStack.Pop();
         }
 
-        return null;
+        CreateameObjects(1);
+        return Pop();
     }
+    #endregion
 
-    public ObjectPool(GameObject obj, int maxSize = -1, int originSize = 0)
+    #region Public
+    /// <summary>
+    /// 预设对象池
+    /// </summary>
+    public void Initialize()
     {
-        //prefab = obj;
-        //unUsedStack = new Stack<T>();
-
-        for (int i = 0; i < originSize; i++)
-        {
-          //  unUsedStack.Push(CreateItem());
-        }
-
-        if (maxSize < 0)
-        {
-            this.maxSize = maxSize;
-        }
-        else
-        {
-            this.maxSize = Math.Max(originSize, maxSize);
-        }
+        unUsedStack = new Stack<GameObject>(instancesToPreallocate);
+        CreateameObjects(instancesToPreallocate);
     }
-    
- //   private T CreateItem()
- //   {
- //       GameObject obj = UnityEngine.Object.Instantiate<GameObject>(prefab);
- //       T component = obj.transform.GetComponent<T>();
 
- //       return component;
- //   }
-    
-  //  public T Allocate()
-   // {
-   //     if (unUsedStack.Count > 0)
-    //    {
-    //        return unUsedStack.Pop();
-   //     }
-    ////    else
-   //     {
-   //         return CreateItem();
-   //     }
-   // }
+    /// <summary>
+    /// 返回一个游戏对象，当对象池容量达到上限时，返回空
+    /// </summary>
+    /// <returns></returns>
 
-   // public void Recycle(T item)
-    //{
-   //     item.transform.parent = null;
-   //     if (maxSize < 0)
-   //     {
-    //        unUsedStack.Push(item);
-     //   }
-    //    else
-     //   {
-     //       if (GetPoolSize() < maxSize)
-     //       {
-     //           unUsedStack.Push(item);
-      ///      }
-     //       else
-      //      {
-     //           UnityEngine.Object.Destroy(item.gameObject);
-     //       }
-     //   }
-    //}
-
-    public int GetPoolSize()
+    public GameObject Generate()
     {
-        return unUsedStack.Count;
+        GameObject go = Pop();
+        return go;
     }
 
+    /// <summary>
+    /// 回收游戏对象
+    /// </summary>
+    public void Recycle(GameObject go)
+    {
+        go.SetActive(false);
+
+        instanceCount--;
+        unUsedStack.Push(go);
+    }
+
+    /// <summary>
+    /// 清空对象池并销毁对象
+    /// </summary>
     public void Release()
     {
-        //T[] list = unUsedStack.ToArray();
-        //for (int i = 0; i < list.Length; i++)
-        //{
-        //    UnityEngine.Object.Destroy(list[i].gameObject);
-        //}
-       // unUsedStack.Clear();
+        while (unUsedStack.Count > 0)
+        {
+            var go = unUsedStack.Pop();
+            GameObject.Destroy(go);
+        }
     }
-
+    #endregion
 }

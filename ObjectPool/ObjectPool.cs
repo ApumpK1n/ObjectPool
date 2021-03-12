@@ -31,8 +31,21 @@ public class ObjectPool
     /// </summary>
     private int instanceCount = 0;
 
+    public Action<GameObject> onGernerateEvent;
+    public Action<GameObject> onRecycleEvent;
+    public Action<GameObject> onDestroyEvent;
 
     private Stack<GameObject> unUsedStack;
+
+    public ObjectPool(GameObject prefab, int instancesToPreallocate=5, bool imposeHardLimit=false, int hardLimit=10, bool persistBetweenScenes = false)
+    {
+        this.prefab = prefab;
+        this.instancesToPreallocate = instancesToPreallocate;
+        this.imposeHardLimit = imposeHardLimit;
+        this.hardLimit = hardLimit;
+        this.persistBetweenScenes = persistBetweenScenes;
+    }
+
 
     #region Private
     private void CreateameObjects(int count)
@@ -46,6 +59,7 @@ public class ObjectPool
         {
             GameObject go = GameObject.Instantiate(prefab);
             go.name = prefab.name;
+            go.transform.parent = PoolManager.Instance.transform;
 
             go.SetActive(false);
             unUsedStack.Push(go);
@@ -63,7 +77,7 @@ public class ObjectPool
             return unUsedStack.Pop();
         }
 
-        CreateameObjects(1);
+        CreateameObjects(3);
         return Pop();
     }
     #endregion
@@ -86,6 +100,7 @@ public class ObjectPool
     public GameObject Generate()
     {
         GameObject go = Pop();
+        onGernerateEvent?.Invoke(go);
         return go;
     }
 
@@ -98,6 +113,7 @@ public class ObjectPool
 
         instanceCount--;
         unUsedStack.Push(go);
+        onRecycleEvent?.Invoke(go);
     }
 
     /// <summary>
@@ -105,11 +121,15 @@ public class ObjectPool
     /// </summary>
     public void Release()
     {
+        onRecycleEvent = null;
+        onGernerateEvent = null;
         while (unUsedStack.Count > 0)
         {
             var go = unUsedStack.Pop();
             GameObject.Destroy(go);
+            onDestroyEvent?.Invoke(go);
         }
+        onDestroyEvent = null;
     }
     #endregion
 }
